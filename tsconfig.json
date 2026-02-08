@@ -15,7 +15,6 @@
 		"preserveConstEnums": true,
 		"esModuleInterop": true,
 		"resolveJsonModule": true,
-		"incremental": true,
 		"declaration": true,
 		"sourceMap": true,
 		"skipLibCheck": true,
@@ -25,6 +24,6 @@
 		"credentials/**/*",
 		"nodes/**/*",
 		"nodes/**/*.json",
-		"package.json", "__tests__",
+		"package.json",
 	],
 }

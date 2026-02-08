@@ -21,7 +21,7 @@ type DataSetResponse = DataSetItem[];
 export async function getActiveZones(this: ILoadOptionsFunctions): Promise<INodeListSearchResult> {
 	await ensureZoneExists.call(this, 'n8n_unlocker');
 	await ensureZoneExists.call(this, 'n8n_serp', 'serp');
-	const responseData: ZoneSearchResponse = await this.helpers.requestWithAuthentication.call(
+	const responseData: ZoneSearchResponse = await this.helpers.httpRequestWithAuthentication.call(
 		this,
 		'brightdataApi',
 		{
@@ -64,7 +64,7 @@ type CountrySearchResponse = {
 };
 
 export async function getCountries(this: ILoadOptionsFunctions): Promise<INodeListSearchResult> {
-	const responseData: CountrySearchResponse = await this.helpers.requestWithAuthentication.call(
+	const responseData: CountrySearchResponse = await this.helpers.httpRequestWithAuthentication.call(
 		this,
 		'brightdataApi',
 		{
@@ -89,7 +89,7 @@ export async function getCountries(this: ILoadOptionsFunctions): Promise<INodeLi
 }
 
 export async function getDataSets(this: ILoadOptionsFunctions): Promise<INodeListSearchResult> {
-	const responseData: DataSetResponse = await this.helpers.requestWithAuthentication.call(
+	const responseData: DataSetResponse = await this.helpers.httpRequestWithAuthentication.call(
 		this,
 		'brightdataApi',
 		{
@@ -116,7 +116,7 @@ export async function ensureZoneExists(
 	zoneType: string = 'unblocker',
 ): Promise<void> {
 	try {
-		const zones: ZoneSearchResponse = await this.helpers.requestWithAuthentication.call(
+		const zones: ZoneSearchResponse = await this.helpers.httpRequestWithAuthentication.call(
 			this,
 			'brightdataApi',
 			{
@@ -129,7 +129,7 @@ export async function ensureZoneExists(
 		const hasZone = zones.some((zone: ZoneSearchItem) => zone.name === zoneName);
 
 		if (!hasZone) {
-			await this.helpers.requestWithAuthentication.call(this, 'brightdataApi', {
+			await this.helpers.httpRequestWithAuthentication.call(this, 'brightdataApi', {
 				method: 'POST',
 				url: 'https://api.brightdata.com/zone',
 				json: true,
@@ -139,7 +139,6 @@ export async function ensureZoneExists(
 				},
 			});
 		}
-	} catch (error) {
-		console.warn('Failed to ensure zone exists:', error);
+	} catch {
 	}
 }
