@@ -1,5 +1,5 @@
 {
-  "name": "@brightdata/n8n-nodes-brightdata",
+  "name": "@brightdata/n8n-nodes-brightdata-modified",
   "version": "1.1.0",
   "description": "Bright Data service for scraping purposes in n8n",
   "keywords": [
@@ -11,7 +11,7 @@
     "fingerprinting"
   ],
   "author": {
-    "name": "Bright Data"
+    "name": "Endaer"
   },
   "publishConfig": {
     "access": "public"
@@ -19,7 +19,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brightdata/n8n-nodes-brightdata.git"
+    "url": "https://github.com/Endaer/n8n-nodes-brightdata-modified.git"
   },
   "main": "index.js",
   "scripts": {
