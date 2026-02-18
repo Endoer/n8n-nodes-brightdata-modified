@@ -193,7 +193,7 @@ export class BrightData implements INodeType {
 			}
 			return [returnData];
 		} else {
-			return await this.helpers.executeRouting.call(this);
+			return await (this.helpers as any).executeRouting.call(this);
 		}
 	}
 }

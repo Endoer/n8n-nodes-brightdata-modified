@@ -1,6 +1,6 @@
 {
-  "name": "@brightdata/n8n-nodes-brightdata-modified",
-  "version": "1.1.0",
+  "name": "@endoer/n8n-nodes-brightdata-modified",
+  "version": "1.0.1",
   "description": "Bright Data service for scraping purposes in n8n",
   "keywords": [
     "n8n",
@@ -11,7 +11,7 @@
     "fingerprinting"
   ],
   "author": {
-    "name": "Endoer"
+    "name": "endoer"
   },
   "publishConfig": {
     "access": "public"
@@ -23,8 +23,8 @@
   },
   "main": "index.js",
   "scripts": {
-    "clear": "rm -rf dist",
-    "build": "npm run clear && tsc && gulp build:icons",
+    "clear": "rimraf dist",
+    "build": "tsc && gulp build:icons",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
     "lint": "eslint nodes credentials package.json",
