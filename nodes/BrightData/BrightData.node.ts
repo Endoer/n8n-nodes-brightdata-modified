@@ -1,4 +1,11 @@
-import { INodeType, INodeTypeDescription, NodeConnectionTypes } from 'n8n-workflow';
+import {
+	IDataObject,
+	IExecuteFunctions,
+	INodeExecutionData,
+	INodeType,
+	INodeTypeDescription,
+	NodeConnectionTypes,
+} from 'n8n-workflow';
 
 import { webUnlockerFields, webUnlockerOperations } from './WebUnlockerDescription';
 import {
@@ -7,6 +14,7 @@ import {
 } from './MarketplaceDatasetDescription';
 import { webScrapperFields, webScrapperOperations } from './WebScrapperDescription';
 import { getActiveZones, getCountries, getDataSets } from './SearchFunctions';
+import { brightdataApiRequest } from './GenericFunctions';
 
 export class BrightData implements INodeType {
 	description: INodeTypeDescription = {
@@ -76,4 +84,116 @@ export class BrightData implements INodeType {
 			getDataSets: getDataSets,
 		},
 	};
+
+	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+		const items = this.getInputData();
+		const returnData: INodeExecutionData[] = [];
+		const resource = this.getNodeParameter('resource', 0) as string;
+		const operation = this.getNodeParameter('operation', 0) as string;
+
+		if (resource === 'webUnlocker') {
+			const usePersistence = this.getNodeParameter('usePersistence', 0, false) as boolean;
+			const workflowStaticData = this.getWorkflowStaticData('node');
+			let workingCountry = (usePersistence && workflowStaticData.lastWorkingCountry) as
+				| string
+				| undefined;
+
+			for (let i = 0; i < items.length; i++) {
+				try {
+					const rotateCountries = this.getNodeParameter('rotateCountries', i, false) as boolean;
+					const primaryCountryData = this.getNodeParameter('country', i) as { value: string };
+					const primaryCountry = primaryCountryData.value;
+					const zoneData = this.getNodeParameter('zone', i) as { value: string };
+					const zone = zoneData.value;
+
+					// Build list of countries to try
+					let countriesToTry = [primaryCountry];
+
+					// If we have a remembered working country, put it at the very top
+					if (workingCountry) {
+						countriesToTry = [workingCountry, ...countriesToTry.filter((c) => c !== workingCountry)];
+					}
+
+					if (rotateCountries) {
+						const additionalCountriesStr = this.getNodeParameter('additionalCountries', i, '') as string;
+						if (additionalCountriesStr) {
+							const extras = additionalCountriesStr
+								.split(/[ ,;]+/)
+								.map((c) => c.trim())
+								.filter((c) => c);
+							countriesToTry = [...new Set([...countriesToTry, ...extras])];
+						}
+					}
+
+					let lastError: any;
+					let success = false;
+					for (const country of countriesToTry) {
+						try {
+							let body: IDataObject = {};
+							if (operation === 'request') {
+								const method = this.getNodeParameter('method', i) as string;
+								const url = this.getNodeParameter('url', i) as string;
+								const format = this.getNodeParameter('format', i) as string;
+								const dataFormat = this.getNodeParameter('data_format', i, '') as string;
+								body = {
+									zone,
+									country,
+									method,
+									url,
+									format: dataFormat === 'markdown' ? 'raw' : format,
+								};
+								if (dataFormat) {
+									body.data_format = dataFormat;
+								}
+							} else if (operation === 'WebSearch') {
+								const query = this.getNodeParameter('query', i) as string;
+								const page = this.getNodeParameter('page', i, 1) as number;
+								const url = `https://www.google.com/search?q=${encodeURIComponent(
+									query,
+								)}&start=${(page - 1) * 10}&brd_json=1`;
+								body = {
+									zone,
+									country,
+									url,
+									format: 'raw',
+								};
+							}
+
+							const responseData = await brightdataApiRequest.call(this, 'POST', '/request', body);
+
+							// Update global working country if it changed and redirected succeeded
+							if (workingCountry !== country) {
+								workingCountry = country;
+								if (usePersistence) {
+									workflowStaticData.lastWorkingCountry = country;
+								}
+							}
+
+							const executionData = this.helpers.returnJsonArray(responseData);
+							for (const entry of executionData) {
+								entry.json.country_code = country;
+								returnData.push(entry);
+							}
+							success = true;
+							break;
+						} catch (error) {
+							lastError = error;
+						}
+					}
+					if (!success) {
+						throw lastError;
+					}
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({ json: { error: error.message } });
+						continue;
+					}
+					throw error;
+				}
+			}
+			return [returnData];
+		} else {
+			return await this.helpers.executeRouting.call(this);
+		}
+	}
 }

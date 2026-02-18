@@ -105,11 +105,52 @@ const webUnlockerParameters: INodeProperties[] = [
 			},
 		],
 		required: true,
-		description: 'Select the country',
+		description: 'Select the primary country',
 		displayOptions: {
 			show: {
 				resource: ['webUnlocker'],
 				operation: ['request', 'WebSearch'],
+			},
+		},
+	},
+	{
+		displayName: 'Rotate Countries on Failure',
+		name: 'rotateCountries',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to try other countries if the request fails',
+		displayOptions: {
+			show: {
+				resource: ['webUnlocker'],
+				operation: ['request', 'WebSearch'],
+			},
+		},
+	},
+	{
+		displayName: 'Remember Last Working Country',
+		name: 'usePersistence',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to remember the last successful country and use it for future requests',
+		displayOptions: {
+			show: {
+				resource: ['webUnlocker'],
+				operation: ['request', 'WebSearch'],
+			},
+		},
+	},
+	{
+		displayName: 'Additional Countries',
+		name: 'additionalCountries',
+		type: 'string',
+		default: '',
+		placeholder: 'e.g. gb,de,fr',
+		description: 'Comma-separated list of country codes to try if the primary country fails',
+		displayOptions: {
+			show: {
+				resource: ['webUnlocker'],
+				operation: ['request', 'WebSearch'],
+				rotateCountries: [true],
 			},
 		},
 	},
