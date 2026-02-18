@@ -11,7 +11,7 @@
     "fingerprinting"
   ],
   "author": {
-    "name": "Endaer"
+    "name": "Endoer"
   },
   "publishConfig": {
     "access": "public"
@@ -19,7 +19,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Endaer/n8n-nodes-brightdata-modified.git"
+    "url": "https://github.com/Endoer/n8n-nodes-brightdata-modified.git"
   },
   "main": "index.js",
   "scripts": {
