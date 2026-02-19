@@ -262,7 +262,7 @@ export class BrightData implements INodeType {
 						}
 					}
 					if (!success) {
-						throw lastError;
+						throw lastError || new NodeOperationError(this.getNode(), 'All countries failed to return valid data');
 					}
 				} catch (error) {
 					if (this.continueOnFail()) {
@@ -272,7 +272,17 @@ export class BrightData implements INodeType {
 					throw error;
 				}
 			}
-			return [returnData];
+
+			// Final sanity check: remove any results that are considered empty
+			const filteredData = returnData.filter(item => !isEmptyResponse(item.json));
+
+			if (filteredData.length === 0 && returnData.length > 0) {
+				// We had data but it was all empty, and we likely "Continued on Fail"
+				// or somehow a result leaked.
+				throw new NodeOperationError(this.getNode(), 'No valid non-empty data was received from any country.');
+			}
+
+			return [filteredData.length > 0 ? filteredData : returnData];
 		} else {
 			return await (this.helpers as any).executeRouting.call(this);
 		}
