@@ -18,48 +18,69 @@ import { getActiveZones, getCountries, getDataSets } from './SearchFunctions';
 import { brightdataApiRequest } from './GenericFunctions';
 
 /**
- * Returns true if the response is considered empty/useless:
- * - null / undefined / false / 0 / empty string
- * - An HTML string whose <body> content is blank
- * - An empty object {}
+ * Returns true if the value is "empty" in the context of a BrightData response.
+ * - null/undefined/false
+ * - Empty string or string that is just whitespace/HTML tags
+ * - Empty array or array where every element is "empty"
+ * - Empty object or object where every value is "empty"
  */
 function isEmptyResponse(data: unknown): boolean {
-	if (!data && data !== 0) return true;
+	if (data === null || data === undefined || data === false) {
+		return true;
+	}
 
 	if (typeof data === 'string') {
 		const html = data.trim();
 		if (html === '') return true;
 
-		// If it looks like HTML, try to focus on the body content
+		// If it looks like HTML, focus on the body content first
+		let textToStrip = html;
 		if (html.toLowerCase().includes('<body')) {
 			const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
 			if (bodyMatch) {
-				const bodyContent = bodyMatch[1]
-					.replace(/<script[\s\S]*?<\/script>/gi, '')
-					.replace(/<style[\s\S]*?<\/style>/gi, '')
-					.replace(/<[^>]+>/g, ' ')
-					.replace(/&nbsp;/g, ' ')
-					.replace(/\s+/g, ' ')
-					.trim();
-				return bodyContent.length === 0;
+				textToStrip = bodyMatch[1];
+			} else {
+				// Has body tag but can't match? Treat as suspicious/empty
+				return true;
 			}
 		}
 
-		// Fallback for strings: strip tags and check
-		const text = html
+		const stripped = textToStrip
 			.replace(/<script[\s\S]*?<\/script>/gi, '')
 			.replace(/<style[\s\S]*?<\/style>/gi, '')
 			.replace(/<[^>]+>/g, ' ')
 			.replace(/&nbsp;/g, ' ')
 			.replace(/\s+/g, ' ')
 			.trim();
-		return text.length === 0;
+
+		return stripped.length === 0;
 	}
 
-	if (typeof data === 'object' && data !== null) {
+	if (Array.isArray(data)) {
+		if (data.length === 0) return true;
+		// If every element in the array is "empty", the whole response is empty
+		return data.every((item) => isEmptyResponse(item));
+	}
+
+	if (typeof data === 'object') {
 		const obj = data as Record<string, unknown>;
 		if (obj.error) return true;
-		return Object.keys(obj).length === 0;
+
+		const keys = Object.keys(obj);
+		if (keys.length === 0) return true;
+
+		// If it's just a status object like { "status": 200 } without other data
+		if (keys.length === 1 && (keys[0] === 'status' || keys[0] === 'statusCode' || keys[0] === 'success')) {
+			return true;
+		}
+
+		// Recursively check all values. If ALL are empty, the object is empty for us.
+		// (e.g., { "data": "", "html": "   " } should be treated as empty)
+		return keys.every((key) => {
+			// Skip status fields when checking if there's *any* real content
+			if (['status', 'statusCode', 'success', 'country_code'].includes(key)) return true;
+			return isEmptyResponse(obj[key]);
+		});
 	}
 
 	return false;
