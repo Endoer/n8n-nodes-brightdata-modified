@@ -116,7 +116,7 @@
         "url": "=https://www.google.com/search?q=site%3Alinkedin.com%2Fin+{{ encodeURIComponent($json.company) }}+{{ encodeURIComponent($json.position) }}&num=10",
         "format": "json"
       },
-      "type": "n8n-nodes-brightdata.brightData",
+      "type": "n8n-nodes-brightdata.brightDataModified",
       "typeVersion": 1,
       "position": [
         -780,
@@ -191,7 +191,7 @@
         },
         "urls": "={{ JSON.stringify($json.items) }}"
       },
-      "type": "n8n-nodes-brightdata.brightData",
+      "type": "n8n-nodes-brightdata.brightDataModified",
       "typeVersion": 1,
       "position": [
         320,
@@ -212,7 +212,7 @@
         "operation": "monitorProgressSnapshot",
         "snapshot_id": "={{ $json.snapshot_id }}"
       },
-      "type": "n8n-nodes-brightdata.brightData",
+      "type": "n8n-nodes-brightdata.brightDataModified",
       "typeVersion": 1,
       "position": [
         540,
@@ -233,7 +233,7 @@
         "operation": "downloadSnapshot",
         "snapshot_id": "={{ $json.snapshot_id }}"
       },
-      "type": "n8n-nodes-brightdata.brightData",
+      "type": "n8n-nodes-brightdata.brightDataModified",
       "typeVersion": 1,
       "position": [
         900,

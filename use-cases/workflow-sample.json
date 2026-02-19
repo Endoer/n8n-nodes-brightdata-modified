@@ -219,7 +219,7 @@
         "format": "json",
         "requestOptions": {}
       },
-      "type": "n8n-nodes-brightdata.brightData",
+      "type": "n8n-nodes-brightdata.brightDataModified",
       "typeVersion": 1,
       "position": [
         220,

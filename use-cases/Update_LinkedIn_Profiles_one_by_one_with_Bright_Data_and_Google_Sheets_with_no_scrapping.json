@@ -362,7 +362,7 @@
         },
         "urls": "=[{\"url\":\"{{$json.linkedin_uri}}\"}]"
       },
-      "type": "n8n-nodes-brightdata.brightData",
+      "type": "n8n-nodes-brightdata.brightDataModified",
       "typeVersion": 1,
       "position": [
         -60,
