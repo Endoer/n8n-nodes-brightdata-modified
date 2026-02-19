@@ -179,6 +179,7 @@ export class BrightData implements INodeType {
 								}
 
 								entry.json.country_code = country;
+								entry.json.version_check = "1.1.5-final";
 								processedEntries.push(entry);
 							}
 
