@@ -16,7 +16,7 @@ import { webScrapperFields, webScrapperOperations } from './WebScrapperDescripti
 import { getActiveZones, getCountries, getDataSets } from './SearchFunctions';
 import { brightdataApiRequest } from './GenericFunctions';
 
-export class BrightData implements INodeType {
+export class BrightDataModified implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'BrightDataModified',
 		name: 'brightDataModified',
