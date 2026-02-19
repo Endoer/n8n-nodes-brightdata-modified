@@ -41,7 +41,7 @@
       "dist/credentials/BrightDataApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/BrightData/BrightData.node.js"
+      "dist/nodes/BrightData/BrightDataModified.node.js"
     ]
   },
   "devDependencies": {
