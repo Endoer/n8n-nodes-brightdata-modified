@@ -18,8 +18,8 @@ import { brightdataApiRequest } from './GenericFunctions';
 
 export class BrightData implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'BrightData',
-		name: 'brightData',
+		displayName: 'BrightDataModified',
+		name: 'brightDataModified',
 		icon: 'file:brightdatasquared.svg',
 		group: ['transform'],
 		version: 1,
@@ -27,7 +27,7 @@ export class BrightData implements INodeType {
 		description:
 			'Interact with Bright Data to scrape websites or use existing datasets from the marketplace to generate adapted snapshots',
 		defaults: {
-			name: 'BrightData',
+			name: 'BrightDataModified',
 		},
 		usableAsTool: true,
 		inputs: [NodeConnectionTypes.Main],
@@ -171,6 +171,9 @@ export class BrightData implements INodeType {
 
 							const executionData = this.helpers.returnJsonArray(responseData);
 							for (const entry of executionData) {
+								if (typeof entry.json !== 'object' || entry.json === null) {
+									entry.json = { data: entry.json };
+								}
 								entry.json.country_code = country;
 								returnData.push(entry);
 							}
