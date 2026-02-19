@@ -17,75 +17,7 @@ import { webScrapperFields, webScrapperOperations } from './WebScrapperDescripti
 import { getActiveZones, getCountries, getDataSets } from './SearchFunctions';
 import { brightdataApiRequest } from './GenericFunctions';
 
-/**
- * Returns true if the value is "empty" in the context of a BrightData response.
- * - null/undefined/false
- * - Empty string or string that is just whitespace/HTML tags
- * - Empty array or array where every element is "empty"
- * - Empty object or object where every value is "empty"
- */
-function isEmptyResponse(data: unknown): boolean {
-	if (data === null || data === undefined || data === false) {
-		return true;
-	}
-
-	if (typeof data === 'string') {
-		const html = data.trim();
-		if (html === '') return true;
-
-		// If it looks like HTML, focus on the body content first
-		let textToStrip = html;
-		if (html.toLowerCase().includes('<body')) {
-			const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-			if (bodyMatch) {
-				textToStrip = bodyMatch[1];
-			} else {
-				// Has body tag but can't match? Treat as suspicious/empty
-				return true;
-			}
-		}
-
-		const stripped = textToStrip
-			.replace(/<script[\s\S]*?<\/script>/gi, '')
-			.replace(/<style[\s\S]*?<\/style>/gi, '')
-			.replace(/<[^>]+>/g, ' ')
-			.replace(/&nbsp;/g, ' ')
-			.replace(/\s+/g, ' ')
-			.trim();
-
-		return stripped.length === 0;
-	}
-
-	if (Array.isArray(data)) {
-		if (data.length === 0) return true;
-		// If every element in the array is "empty", the whole response is empty
-		return data.every((item) => isEmptyResponse(item));
-	}
-
-	if (typeof data === 'object') {
-		const obj = data as Record<string, unknown>;
-		if (obj.error) return true;
-
-		const keys = Object.keys(obj);
-		if (keys.length === 0) return true;
-
-		// If it's just a status object like { "status": 200 } without other data
-		if (keys.length === 1 && (keys[0] === 'status' || keys[0] === 'statusCode' || keys[0] === 'success')) {
-			return true;
-		}
-
-		// Recursively check all values. If ALL are empty, the object is empty for us.
-		// (e.g., { "data": "", "html": "   " } should be treated as empty)
-		return keys.every((key) => {
-			// Skip status fields when checking if there's *any* real content
-			if (['status', 'statusCode', 'success', 'country_code'].includes(key)) return true;
-			return isEmptyResponse(obj[key]);
-		});
-	}
-
-	return false;
-}
-
+// Resource check and operations remain the same
 export class BrightData implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'BrightData',
@@ -176,10 +108,7 @@ export class BrightData implements INodeType {
 					const zoneData = this.getNodeParameter('zone', i) as { value: string };
 					const zone = zoneData.value;
 
-					// Build list of countries to try
 					let countriesToTry = [primaryCountry];
-
-					// If we have a remembered working country, put it at the very top
 					if (workingCountry) {
 						countriesToTry = [workingCountry, ...countriesToTry.filter((c) => c !== workingCountry)];
 					}
@@ -197,6 +126,7 @@ export class BrightData implements INodeType {
 
 					let lastError: any;
 					let success = false;
+
 					for (const country of countriesToTry) {
 						try {
 							let body: IDataObject = {};
@@ -231,15 +161,28 @@ export class BrightData implements INodeType {
 
 							const responseData = await brightdataApiRequest.call(this, 'POST', '/request', body);
 
-							// Treat empty / empty-HTML response as a failure — try next country
-							if (isEmptyResponse(responseData)) {
-								throw new NodeOperationError(
-									this.getNode(),
-									`Empty response received for country "${country}" — will try next country`,
-								);
+							if (!responseData || responseData === '') {
+								throw new NodeOperationError(this.getNode(), 'Raw response is empty');
 							}
 
-							// Update global working country if it changed and request succeeded
+							const executionData = this.helpers.returnJsonArray(responseData);
+							const processedEntries: INodeExecutionData[] = [];
+
+							for (const entry of executionData) {
+								if (typeof entry.json !== 'object' || entry.json === null) {
+									entry.json = { body: entry.json };
+								}
+
+								// IF BODY IS EMPTY -> FAIL THIS COUNTRY
+								if (!entry.json.body && !entry.json.data && !entry.json.html) {
+									throw new NodeOperationError(this.getNode(), 'Parsed content is empty');
+								}
+
+								entry.json.country_code = country;
+								processedEntries.push(entry);
+							}
+
+							// If we reached here, data is NOT empty
 							if (workingCountry !== country) {
 								workingCountry = country;
 								if (usePersistence) {
@@ -247,22 +190,17 @@ export class BrightData implements INodeType {
 								}
 							}
 
-							const executionData = this.helpers.returnJsonArray(responseData);
-							for (const entry of executionData) {
-								if (typeof entry.json !== 'object' || entry.json === null) {
-									entry.json = { data: entry.json };
-								}
-								entry.json.country_code = country;
-								returnData.push(entry);
-							}
+							returnData.push(...processedEntries);
 							success = true;
 							break;
+
 						} catch (error) {
 							lastError = error;
 						}
 					}
+
 					if (!success) {
-						throw lastError || new NodeOperationError(this.getNode(), 'All countries failed to return valid data');
+						throw lastError || new NodeOperationError(this.getNode(), 'All countries failed to return data');
 					}
 				} catch (error) {
 					if (this.continueOnFail()) {
@@ -273,16 +211,7 @@ export class BrightData implements INodeType {
 				}
 			}
 
-			// Final sanity check: remove any results that are considered empty
-			const filteredData = returnData.filter(item => !isEmptyResponse(item.json));
-
-			if (filteredData.length === 0 && returnData.length > 0) {
-				// We had data but it was all empty, and we likely "Continued on Fail"
-				// or somehow a result leaked.
-				throw new NodeOperationError(this.getNode(), 'No valid non-empty data was received from any country.');
-			}
-
-			return [filteredData.length > 0 ? filteredData : returnData];
+			return [returnData];
 		} else {
 			return await (this.helpers as any).executeRouting.call(this);
 		}
