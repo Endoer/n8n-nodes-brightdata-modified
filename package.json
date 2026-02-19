@@ -1,6 +1,6 @@
 {
   "name": "@endoer/n8n-nodes-brightdata-modified",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "Bright Data service for scraping purposes in n8n",
   "keywords": [
     "n8n",
@@ -21,7 +21,7 @@
     "type": "git",
     "url": "https://github.com/Endoer/n8n-nodes-brightdata-modified.git"
   },
-  "main": "dist/nodes/BrightData/BrightDataModified.node.js",
+  "main": "index.js",
   "scripts": {
     "clear": "rimraf dist",
     "build": "tsc && gulp build:icons",
@@ -41,7 +41,7 @@
       "dist/credentials/BrightDataApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/BrightData/BrightDataModified.node.js"
+      "dist/nodes/BrightData/BrightData.node.js"
     ]
   },
   "devDependencies": {
