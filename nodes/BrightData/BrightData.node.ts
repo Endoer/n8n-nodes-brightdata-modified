@@ -20,24 +20,48 @@ import { brightdataApiRequest } from './GenericFunctions';
 /**
  * Returns true if the response is considered empty/useless:
  * - null / undefined / false / 0 / empty string
- * - An HTML string whose visible text content is blank
+ * - An HTML string whose <body> content is blank
+ * - An empty object {}
  */
 function isEmptyResponse(data: unknown): boolean {
 	if (!data && data !== 0) return true;
+
 	if (typeof data === 'string') {
-		if (data.trim() === '') return true;
-		// For HTML responses: strip all tags and check if any text remains
-		if (data.trimStart().startsWith('<')) {
-			const text = data
-				.replace(/<script[\s\S]*?<\/script>/gi, '')
-				.replace(/<style[\s\S]*?<\/style>/gi, '')
-				.replace(/<[^>]+>/g, ' ')
-				.replace(/&nbsp;/g, ' ')
-				.replace(/\s+/g, ' ')
-				.trim();
-			return text.length === 0;
+		const html = data.trim();
+		if (html === '') return true;
+
+		// If it looks like HTML, try to focus on the body content
+		if (html.toLowerCase().includes('<body')) {
+			const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+			if (bodyMatch) {
+				const bodyContent = bodyMatch[1]
+					.replace(/<script[\s\S]*?<\/script>/gi, '')
+					.replace(/<style[\s\S]*?<\/style>/gi, '')
+					.replace(/<[^>]+>/g, ' ')
+					.replace(/&nbsp;/g, ' ')
+					.replace(/\s+/g, ' ')
+					.trim();
+				return bodyContent.length === 0;
+			}
 		}
+
+		// Fallback for strings: strip tags and check
+		const text = html
+			.replace(/<script[\s\S]*?<\/script>/gi, '')
+			.replace(/<style[\s\S]*?<\/style>/gi, '')
+			.replace(/<[^>]+>/g, ' ')
+			.replace(/&nbsp;/g, ' ')
+			.replace(/\s+/g, ' ')
+			.trim();
+		return text.length === 0;
 	}
+
+	if (typeof data === 'object' && data !== null) {
+		const obj = data as Record<string, unknown>;
+		if (obj.error) return true;
+		return Object.keys(obj).length === 0;
+	}
+
 	return false;
 }
 
