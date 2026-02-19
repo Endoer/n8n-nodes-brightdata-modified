@@ -5,6 +5,7 @@ import {
 	INodeType,
 	INodeTypeDescription,
 	NodeConnectionTypes,
+	NodeOperationError,
 } from 'n8n-workflow';
 
 import { webUnlockerFields, webUnlockerOperations } from './WebUnlockerDescription';
@@ -15,6 +16,30 @@ import {
 import { webScrapperFields, webScrapperOperations } from './WebScrapperDescription';
 import { getActiveZones, getCountries, getDataSets } from './SearchFunctions';
 import { brightdataApiRequest } from './GenericFunctions';
+
+/**
+ * Returns true if the response is considered empty/useless:
+ * - null / undefined / false / 0 / empty string
+ * - An HTML string whose visible text content is blank
+ */
+function isEmptyResponse(data: unknown): boolean {
+	if (!data && data !== 0) return true;
+	if (typeof data === 'string') {
+		if (data.trim() === '') return true;
+		// For HTML responses: strip all tags and check if any text remains
+		if (data.trimStart().startsWith('<')) {
+			const text = data
+				.replace(/<script[\s\S]*?<\/script>/gi, '')
+				.replace(/<style[\s\S]*?<\/style>/gi, '')
+				.replace(/<[^>]+>/g, ' ')
+				.replace(/&nbsp;/g, ' ')
+				.replace(/\s+/g, ' ')
+				.trim();
+			return text.length === 0;
+		}
+	}
+	return false;
+}
 
 export class BrightData implements INodeType {
 	description: INodeTypeDescription = {
@@ -160,6 +185,14 @@ export class BrightData implements INodeType {
 							}
 
 							const responseData = await brightdataApiRequest.call(this, 'POST', '/request', body);
+
+							// Treat empty / empty-HTML response as a failure — try next country
+							if (isEmptyResponse(responseData)) {
+								throw new NodeOperationError(
+									this.getNode(),
+									`Empty response received for country "${country}" — will try next country`,
+								);
+							}
 
 							// Update global working country if it changed and request succeeded
 							if (workingCountry !== country) {
