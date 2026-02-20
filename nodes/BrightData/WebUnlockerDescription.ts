@@ -275,7 +275,7 @@ const webUnlockerParameters: INodeProperties[] = [
 				value: 'json',
 			},
 		],
-		default: 'raw',
+		default: 'json',
 		required: true,
 		description: 'The format of the response',
 		displayOptions: {
